@@ -1,5 +1,38 @@
-import { TRACKS_EXAMPLES, TRACK_CLASS_NAME } from "./constants.js";
-import { DOM, CONTROLS } from "./dom.js";
+const DOM = {
+  currentTimeDOM: document.getElementById("track-currenttime"),
+  trackDurationDOM: document.getElementById("track-duration"),
+  trackNameDOM: document.getElementById("track-name"),
+  inputTrackDOM: document.getElementById("input-track-container"),
+  repeatDOM: document.getElementById("repeat-toggle"),
+  exampleTracksList: document.getElementById("example-tracks-list"),
+  progressBarContainer: document.getElementById("progress-bar-container"),
+  progressBarIndicator: document.getElementById("progress-bar-indicator"),
+};
+
+const CONTROLS = {
+  inputFile: document.getElementById("input-file"),
+  playbackBtn: document.getElementById("playback-toggle"),
+  stopBtn: document.getElementById("control-stop"),
+  volumeInput: document.getElementById("volumen-input"),
+  repeatBtn: document.getElementById("repeat-toggle"),
+};
+
+const TRACKS_EXAMPLES = [
+  {
+    id: 1,
+    name: "Meditation/Spiritual",
+    artist: "Alex Morgan",
+    fileSrc: document.getElementById("audio-example-1").src,
+  },
+  {
+    id: 2,
+    name: "Funk",
+    artist: "Moodmode",
+    fileSrc: document.getElementById("audio-example-2").src,
+  },
+];
+
+const TRACK_CLASS_NAME = "track-item";
 
 let uploadedFile;
 const audio = new Audio();
@@ -30,7 +63,7 @@ function uploadFile(event) {
 }
 
 function loadTrack(file, from) {
-  if (isValidFile(file) === false) {
+  if (from === "upload" && isValidFile(file) === false) {
     resetFileInput();
     return;
   }
@@ -42,17 +75,22 @@ function loadTrack(file, from) {
     DOM.inputTrackDOM.dataset.selected = "false";
   }
 
-  updateAudioFile(file);
+  DOM.progressBarIndicator.style.width = "0%";
   DOM.trackNameDOM.textContent = file.name;
+  updateAudioFile(file, from);
   play();
   CONTROLS.playbackBtn.disabled = false;
 }
 
-function updateAudioFile(file) {
+function updateAudioFile(file, from) {
   if (audio.src) {
     URL.revokeObjectURL(audio.src);
   }
-  audio.src = URL.createObjectURL(file);
+  if (from === "upload") {
+    audio.src = URL.createObjectURL(file);
+  } else {
+    audio.src = file.fileSrc;
+  }
 }
 
 async function play() {
@@ -84,6 +122,7 @@ function stop() {
   audio.currentTime = 0;
   CONTROLS.playbackBtn.textContent = "Play";
   DOM.currentTimeDOM.textContent = "0:00";
+  DOM.progressBarIndicator.style.width = "0%";
 }
 
 function configureAudioEvents() {
@@ -100,6 +139,8 @@ function configureAudioEvents() {
     const secs = Math.floor(seconds % 60);
     const newTime = `${mins}:${secs.toString().padStart(2, "0")}`;
     DOM.currentTimeDOM.textContent = newTime;
+    const progressBarPorcent = (seconds / audio.duration) * 100;
+    DOM.progressBarIndicator.style.width = `${progressBarPorcent}%`;
   });
   audio.addEventListener("ended", stop);
 }
@@ -147,16 +188,7 @@ function configureExampleTracksInteraction() {
     if (track === undefined) return;
 
     try {
-      const response = await fetch(track.fileSrc);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const file = new File([blob], track.name, { type: blob.type });
-
-      loadTrack(file, "selection");
+      loadTrack(track, "selection");
       toggleActiveExampleTrack(trackClicked.id);
       DOM.inputTrackDOM.dataset.selected = "false";
     } catch (error) {
@@ -200,6 +232,45 @@ document.addEventListener("keydown", function (event) {
   if (event.code !== "Space") return;
   event.preventDefault();
   playbackToggle();
+});
+
+function calculateHoverTime(event) {
+  if (audio.src) {
+    const rect = DOM.progressBarContainer.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    const totalWidth = rect.width;
+
+    if (audio.duration && totalWidth > 0) {
+      const fraction = relativeX / totalWidth;
+      const seconds = fraction * audio.duration;
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const hoverOn = `${mins}:${secs.toString().padStart(2, "0")}`;
+      DOM.progressBarContainer.setAttribute("data-time", hoverOn);
+      DOM.progressBarContainer.style.setProperty("--mouse-x", `${relativeX}px`);
+    }
+  }
+}
+
+DOM.progressBarContainer.addEventListener("mouseenter", calculateHoverTime);
+DOM.progressBarContainer.addEventListener("mousemove", calculateHoverTime);
+DOM.progressBarContainer.addEventListener("mouseleave", function () {
+  DOM.progressBarContainer.removeAttribute("data-time");
+  DOM.progressBarContainer.style.removeProperty("--mouse-x");
+});
+
+DOM.progressBarContainer.addEventListener("click", function (event) {
+  if (audio.src) {
+    const rect = DOM.progressBarContainer.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    const totalWidth = rect.width;
+
+    if (audio.duration && totalWidth > 0) {
+      const fraction = relativeX / totalWidth;
+      const seconds = fraction * audio.duration;
+      audio.currentTime = seconds;
+    }
+  }
 });
 
 audio.volume = Number(savedVolumen);
