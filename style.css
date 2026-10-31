@@ -1,0 +1,148 @@
+:root {
+  --header-height: 70px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0px;
+  background-color: #030303;
+  color: #fff;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  padding-inline: 2rem;
+  height: calc(var(--header-height) - 20px);
+  background-color: #333;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - (var(--header-height) - 20px));
+  overflow-y: auto;
+}
+
+section {
+  padding: 2rem;
+}
+
+h1 {
+  margin: 0px;
+}
+
+h2:is(#track-name),
+h3:is(.example-track-title),
+h3:is(.input-track-title),
+p:is(.example-track-artist) {
+  margin: 0px;
+}
+
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#playback-toggle {
+  text-transform: capitalize;
+}
+
+#player-section {
+  flex: 1 1 0%;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 2rem;
+  gap: 1rem;
+  height: calc(var(--header-height) + 2rem);
+  background-color: #333;
+}
+
+.control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.separator {
+  background-color: #5c5c5c;
+  height: 1px;
+  margin: 2rem 0px;
+}
+
+.pixabay-link {
+  color: #ff6347;
+}
+
+#example-tracks-list {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  list-style: none;
+  padding: 0px;
+}
+
+.track-item {
+  padding: 0.7rem;
+  border-radius: 1rem;
+  background-color: #3d3d3d;
+  cursor: pointer;
+}
+
+.track-item h3 {
+  font-size: 1rem;
+}
+
+.track-item p {
+  font-size: 0.9rem;
+}
+
+.track-item:hover {
+  background-color: #4a4a4a;
+}
+
+.track-item:is([data-selected="true"]) {
+  background-color: #b8b8b8;
+  color: black;
+}
+
+.track-time-data {
+  text-align: center;
+  flex: 1 1 0%;
+}
+
+.example-track-container {
+  margin-top: 1rem;
+  max-width: fit-content;
+}
+
+@media (max-width: 768px) {
+  #volumen-input {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  header,
+  section {
+    padding: 1rem;
+  }
+
+  h2,
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  .controls {
+    padding-inline: 1rem;
+  }
+}
