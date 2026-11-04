@@ -38,6 +38,78 @@ let uploadedFile;
 const audio = new Audio();
 const savedVolumen = localStorage.getItem("volume") || "0.50";
 
+const audioContext = new AudioContext();
+const analyser = audioContext.createAnalyser();
+
+const source = audioContext.createMediaElementSource(audio);
+source.connect(analyser);
+analyser.connect(audioContext.destination);
+
+analyser.fftSize = 2048;
+analyser.minDecibels = -90;
+analyser.maxDecibels = -10;
+
+const bufferLength = analyser.frequencyBinCount;
+const dataArray = new Uint8Array(bufferLength);
+analyser.getByteTimeDomainData(dataArray);
+
+const visualyserCanvas = document.getElementById("visualyser-canvas");
+const canvasCtx = visualyserCanvas.getContext("2d");
+visualyserCanvas.width = 500;
+visualyserCanvas.height = 200;
+
+let animationFrameId;
+
+function drawAnalyser() {
+    animationFrameId = requestAnimationFrame(drawAnalyser);
+    analyser.getByteFrequencyData(dataArray);
+
+    const width = visualyserCanvas.width;
+    const height = visualyserCanvas.height;
+
+    canvasCtx.fillStyle = "rgb(0 0 0)";
+    canvasCtx.fillRect(0, 0, width, height);
+
+    const barCount = 10;
+    const gap = 12;
+    const barWidth = (width - gap * (barCount - 1)) / barCount;
+    
+    const frequencyRanges = [
+        [0, 3],
+        [3, 6],
+        [6, 12],
+        [12, 24],
+        [24, 48],
+        [48, 80],
+        [80, 120],
+        [120, 180],
+        [180, 300],
+        [300, 500]    
+    ];
+
+    for (let i = 0; i < barCount; i++) {
+        const [start, end] = frequencyRanges[i];
+
+        let sum = 0;
+        
+        for (let j = start; j < end; j++) {
+            sum += dataArray[j];
+        }
+
+        const average = sum / (end - start);
+        const barHeight = Math.max(3, (average / 255) * height);
+        const x = i * (barWidth + gap);
+        const y = height - barHeight;
+
+        canvasCtx.fillStyle = "#ff2525";
+        canvasCtx.fillRect(x, y, barWidth, barHeight);
+    }
+}
+
+function clearCanvas() {
+   canvasCtx.clearRect(0, 0, visualyserCanvas.width, visualyserCanvas.height);
+}
+
 function updateVolume(event) {
   const value = event.target.value;
   localStorage.setItem("volume", value);
@@ -95,17 +167,34 @@ function updateAudioFile(file, from) {
 
 async function play() {
   try {
+
+    if (audioContext.state === "suspended") {
+        await audioContext.resume();
+    }
+
+    clearCanvas();
     await audio.play();
     CONTROLS.playbackBtn.textContent = "Pause";
+    animationFrameId = undefined;
+    drawAnalyser();
   } catch (error) {
     console.error("Error al reproducir el audio:", error);
     CONTROLS.playbackBtn.textContent = "Play";
+    cancelAnimationFrameHandler();
   }
 }
 
 function pause() {
-  CONTROLS.playbackBtn.textContent = "play";
-  audio.pause();
+    CONTROLS.playbackBtn.textContent = "play";
+    audio.pause();
+    cancelAnimationFrameHandler();
+}
+
+function cancelAnimationFrameHandler() {
+    if (animationFrameId !== undefined) {
+        cancelAnimationFrame(animationFrameId); 
+    }  
+    animationFrameId = undefined;
 }
 
 function playbackToggle() {
@@ -123,6 +212,8 @@ function stop() {
   CONTROLS.playbackBtn.textContent = "Play";
   DOM.currentTimeDOM.textContent = "0:00";
   DOM.progressBarIndicator.style.width = "0%";
+  cancelAnimationFrameHandler();
+  clearCanvas();
 }
 
 function configureAudioEvents() {

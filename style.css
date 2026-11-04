@@ -151,6 +151,11 @@ button:disabled {
   max-width: fit-content;
 }
 
+#visualyser-canvas {
+    width: 100%;
+    height: 100%;
+}
+
 @media (max-width: 768px) {
   #volumen-input {
     display: none;
@@ -175,3 +180,5 @@ button:disabled {
     padding: 1rem;
   }
 }
+
+
